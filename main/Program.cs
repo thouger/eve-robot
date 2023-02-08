@@ -1,60 +1,16 @@
 ﻿using read_memory_64_bit;
-public struct Location2d
-{
-    public Int64 x, y;
-}
-
-static public class SetForegroundWindowInWindows
-{
-    static public int AltKeyPlusSetForegroundWindowWaitTimeMilliseconds = 60;
-
-    /// <summary>
-    /// </summary>
-    /// <param name="windowHandle"></param>
-    /// <returns>null in case of success</returns>
-    static public string TrySetForegroundWindow(IntPtr windowHandle)
-    {
-        try
-        {
-            /*
-            * For the conditions for `SetForegroundWindow` to work, see https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
-            * */
-            WinApi.User32.SetForegroundWindow(windowHandle);
-
-            if (WinApi.User32.GetForegroundWindow() == windowHandle)
-                return null;
-
-            var windowsInZOrder = WinApi.ListWindowHandlesInZOrder();
-
-            var windowIndex = windowsInZOrder.ToList().IndexOf(windowHandle);
-
-            if (windowIndex < 0)
-                return "Did not find window for this handle";
-
-            {
-                var simulator = new WindowsInput.InputSimulator();
-
-                simulator.Keyboard.KeyDown(WindowsInput.Native.VirtualKeyCode.MENU);
-                WinApi.User32.SetForegroundWindow(windowHandle);
-                simulator.Keyboard.KeyUp(WindowsInput.Native.VirtualKeyCode.MENU);
-
-                System.Threading.Thread.Sleep(AltKeyPlusSetForegroundWindowWaitTimeMilliseconds);
-
-                if (WinApi.User32.GetForegroundWindow() == windowHandle)
-                    return null;
-
-                return "Alt key plus SetForegroundWindow approach was not successful.";
-            }
-        }
-        catch (Exception e)
-        {
-            return "Exception: " + e.ToString();
-        }
-    }
-}
+using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
+using WindowsInput;
+using static System.Net.WebRequestMethods;
+using static utils;
+using static WindowsInput.InputSimulator;
 
 public class Program
 {
+    static Queue<ReadingFromGameClient> readingFromGameHistory = new Queue<ReadingFromGameClient>();
+
     System.Diagnostics.Process[] GetWindowsProcessesLookingLikeEVEOnlineClient() =>
     System.Diagnostics.Process.GetProcessesByName("exefile");
 
@@ -151,97 +107,191 @@ public class Program
         return UIRootAddress.Value;
     }
 
-public static void Main(string[] args)
+    public static void ReadFromWindow(long windowId,ulong uiRootAddress, utils.GetImageDataFromReadingStructure getImageData,int processId)
     {
-        var generalStopwatch = System.Diagnostics.Stopwatch.StartNew();
         int readingFromGameCount = 0;
+        var readingFromGameIndex = System.Threading.Interlocked.Increment(ref readingFromGameCount);
+        var generalStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var readingId = readingFromGameIndex.ToString("D6") + "-" + generalStopwatch.ElapsedMilliseconds;
+
+        var windowHandle = new IntPtr(windowId);
+
+        WinApi.GetWindowThreadProcessId(windowHandle, out var processIdUnsigned);
+
+        var windowRect = new WinApi.Rect();
+        WinApi.GetWindowRect(windowHandle, ref windowRect);
+
+        var clientRectOffsetFromScreen = new WinApi.Point(0, 0);
+        WinApi.ClientToScreen(windowHandle, ref clientRectOffsetFromScreen);
+
+        var windowClientRectOffset =
+            new Location2d
+            { x = clientRectOffsetFromScreen.x - windowRect.left, y = clientRectOffsetFromScreen.y - windowRect.top };
+
+        string memoryReadingSerialRepresentationJson = null;
+
+        using (var memoryReader = new Sanderling.MemoryReaderFromLiveProcess(processId))
+        {
+            var uiTree = Sanderling.EveOnline64.ReadUITreeFromAddress(uiRootAddress, memoryReader, 99);
+
+            if (uiTree != null)
+            {
+                memoryReadingSerialRepresentationJson =
+                Sanderling.EveOnline64.SerializeMemoryReadingNodeToJson(
+                    uiTree.WithOtherDictEntriesRemoved());
+            }
+        }
+
+        {
+            /*
+            Maybe taking screenshots needs the window to be not occluded by other windows.
+            We can review this later.
+            */
+            var setForegroundWindowError = SetForegroundWindowInWindows.TrySetForegroundWindow(windowHandle);
+
+            if (setForegroundWindowError != null)
+            {
+                Console.WriteLine($"Error setting foreground window: {setForegroundWindowError}");
+            }
+        }
+
+        var pixels_1x1_R8G8B8 = utils.GetScreenshotOfWindowAsPixelsValues_R8G8B8(windowHandle);
+
+        var historyEntry = new ReadingFromGameClient
+        {
+            windowHandle = windowHandle,
+            readingId = readingId,
+            pixels_1x1_R8G8B8 = pixels_1x1_R8G8B8,
+        };
+
+        var imageData = utils.CompileImageDataFromReadingResult(getImageData, historyEntry);
+
+        readingFromGameHistory.Enqueue(historyEntry);
+
+        while (4 < readingFromGameHistory.Count)
+        {
+            readingFromGameHistory.Dequeue();
+        }
+
+        processId = processId;
+        windowClientRectOffset = windowClientRectOffset;
+        memoryReadingSerialRepresentationJson = memoryReadingSerialRepresentationJson;
+        readingId = readingId;
+        imageData = imageData;
+    }
+
+    public void ExecuteEffectOnWindow(bool bringWindowToForeground,long windowId, EffectSequenceElement[] task)
+    {
+        var windowHandle = new IntPtr(windowId);
+
+        if (bringWindowToForeground)
+        {
+            var setForegroundWindowError = SetForegroundWindowInWindows.TrySetForegroundWindow(windowHandle);
+
+            if (setForegroundWindowError != null)
+            {
+                Console.WriteLine();
+            }
+        }
+
+
+            foreach (var sequenceElement in task)
+            {
+                if (sequenceElement?.effect != null)
+                    _ExecuteEffectOnWindow(sequenceElement.effect, windowHandle, bringWindowToForeground);
+
+                if (sequenceElement?.delayMilliseconds != null)
+                    System.Threading.Thread.Sleep(sequenceElement.delayMilliseconds.Value);
+            }
+        
+    }
+    
+    public void _ExecuteEffectOnWindow(EffectOnWindowStructure effectOnWindow,IntPtr windowHandle,bool bringWindowToForeground)
+    {
+        if (bringWindowToForeground)
+            WinApi.SetForegroundWindow(windowHandle);
+
+        if (effectOnWindow?.MouseMoveTo != null)
+        {
+            //  Build motion description based on https://github.com/Arcitectus/Sanderling/blob/ada11c9f8df2367976a6bcc53efbe9917107bfa7/src/Sanderling/Sanderling/Motor/Extension.cs#L24-L131
+
+            var mousePosition = new BotEngine.Vektor2DInt(
+                effectOnWindow.MouseMoveTo.location.x,
+                effectOnWindow.MouseMoveTo.location.y);
+
+            var mouseButtons = new BotEngine.Motor.MouseButtonIdEnum[] { };
+
+            var windowMotor = new Sanderling.Motor.WindowMotor(windowHandle);
+
+            var motionSequence = new BotEngine.Motor.Motion[]{
+            new BotEngine.Motor.Motion(
+                mousePosition: mousePosition,
+                mouseButtonDown: mouseButtons,
+                windowToForeground: bringWindowToForeground),
+            new BotEngine.Motor.Motion(
+                mousePosition: mousePosition,
+                mouseButtonUp: mouseButtons,
+                windowToForeground: bringWindowToForeground),
+        };
+
+            windowMotor.ActSequenceMotion(motionSequence);
+        }
+
+        if (effectOnWindow?.KeyDown != null)
+        {
+            var virtualKeyCode = (WindowsInput.Native.VirtualKeyCode)effectOnWindow.KeyDown.virtualKeyCode;
+
+            (MouseActionForKeyUpOrDown(keyCode: virtualKeyCode, buttonUp: false)
+            ??
+            (() => new WindowsInput.InputSimulator().Keyboard.KeyDown(virtualKeyCode)))();
+        }
+
+        if (effectOnWindow?.KeyUp != null)
+        {
+            var virtualKeyCode = (WindowsInput.Native.VirtualKeyCode)effectOnWindow.KeyUp.virtualKeyCode;
+
+            (MouseActionForKeyUpOrDown(keyCode: virtualKeyCode, buttonUp: true)
+            ??
+            (() => new WindowsInput.InputSimulator().Keyboard.KeyUp(virtualKeyCode)))();
+        }
+    }
+
+    static System.Action MouseActionForKeyUpOrDown(WindowsInput.Native.VirtualKeyCode keyCode, bool buttonUp)
+    {
+        WindowsInput.IMouseSimulator mouseSimulator() => new WindowsInput.InputSimulator().Mouse;
+
+        var method = keyCode switch
+        {
+            WindowsInput.Native.VirtualKeyCode.LBUTTON =>
+                buttonUp ?
+                (System.Func<WindowsInput.IMouseSimulator>)mouseSimulator().LeftButtonUp
+                : mouseSimulator().LeftButtonDown,
+            WindowsInput.Native.VirtualKeyCode.RBUTTON =>
+                buttonUp ?
+                (System.Func<WindowsInput.IMouseSimulator>)mouseSimulator().RightButtonUp
+                : mouseSimulator().RightButtonDown,
+            _ => null
+        };
+
+        if (method != null)
+            return () => method();
+
+        return null;
+    }
+
+
+    public static void Main(string[] args)
+    {
+        
+        
 
         var program = new Program();
         (int processId, string windowId, string windowsTitle) = ListGameClientProcessesRequest();
         ulong uiRootAddress = SearchUIRootAddress(processId);
 
 
-        var readingFromGameIndex = System.Threading.Interlocked.Increment(ref readingFromGameCount);
-
-            var readingId = readingFromGameIndex.ToString("D6") + "-" + generalStopwatch.ElapsedMilliseconds;
-
-            var windowHandle = new IntPtr(long.Parse(windowId));
-
-            WinApi.GetWindowThreadProcessId(windowHandle, out var processIdUnsigned);
-
-            var windowRect = new WinApi.Rect();
-            WinApi.GetWindowRect(windowHandle, ref windowRect);
-
-            var clientRectOffsetFromScreen = new WinApi.Point(0, 0);
-            WinApi.ClientToScreen(windowHandle, ref clientRectOffsetFromScreen);
-
-            var windowClientRectOffset =
-                new Location2d
-                { x = clientRectOffsetFromScreen.x - windowRect.left, y = clientRectOffsetFromScreen.y - windowRect.top };
-
-            string memoryReadingSerialRepresentationJson = null;
-
-            using (var memoryReader = new Sanderling.MemoryReaderFromLiveProcess(processId))
-            {
-                var uiTree = Sanderling.EveOnline64.ReadUITreeFromAddress(uiRootAddress, memoryReader, 99);
-
-                if (uiTree != null)
-                {
-                    memoryReadingSerialRepresentationJson =
-                    Sanderling.EveOnline64.SerializeMemoryReadingNodeToJson(
-                        uiTree.WithOtherDictEntriesRemoved());
-                }
-            }
-
-            {
-                /*
-                Maybe taking screenshots needs the window to be not occluded by other windows.
-                We can review this later.
-                */
-                var setForegroundWindowError = SetForegroundWindowInWindows.TrySetForegroundWindow(windowHandle);
-
-                if (setForegroundWindowError != null)
-                {
-                    return new Response
-                    {
-                        FailedToBringWindowToFront = setForegroundWindowError,
-                    };
-                }
-            }
-
-            var pixels_1x1_R8G8B8 = GetScreenshotOfWindowAsPixelsValues_R8G8B8(windowHandle);
-
-            var historyEntry = new ReadingFromGameClient
-            {
-                windowHandle = windowHandle,
-                readingId = readingId,
-                pixels_1x1_R8G8B8 = pixels_1x1_R8G8B8,
-            };
-
-            var imageData = CompileImageDataFromReadingResult(request.ReadFromWindow.getImageData, historyEntry);
-
-            readingFromGameHistory.Enqueue(historyEntry);
-
-            while (4 < readingFromGameHistory.Count)
-            {
-                readingFromGameHistory.Dequeue();
-            }
-
-            return new Response
-            {
-                ReadFromWindowResult = new Response.ReadFromWindowResultStructure
-                {
-                    Completed = new Response.ReadFromWindowResultStructure.CompletedStructure
-                    {
-                        processId = processId,
-                        windowClientRectOffset = windowClientRectOffset,
-                        memoryReadingSerialRepresentationJson = memoryReadingSerialRepresentationJson,
-                        readingId = readingId,
-                        imageData = imageData,
-                    },
-                },
-            };
-
+       
        
     }
 }
