@@ -1,8 +1,41 @@
-﻿using System;
+﻿using Sanderling;
+using System;
 
 public static class BotEngine
 {
+    public interface IMotor
+    {
+        public abstract MotionResult ActSequenceMotion(IEnumerable<Motion> seqMotion);
+    }
+    public enum MouseButtonIdEnum
+    {
+        None = 0x0,
+        Left = 0x1,
+        Middle = 0x2,
+        Right = 0x3,
+    }
+    
+    public class Motion : System.Object
+    {
+        public readonly System.Nullable<Vektor2DInt> MousePosition;
+        public readonly MouseButtonIdEnum[] MouseButtonDown;
+        public readonly MouseButtonIdEnum[] MouseButtonUp;
+        public readonly WindowsInput.Native.VirtualKeyCode[] KeyDown;
+        public readonly WindowsInput.Native.VirtualKeyCode[] KeyUp;
+        public readonly string TextEntry;
+        public readonly System.Nullable<bool> WindowToForeground;
 
+        public Motion(Vektor2DInt? mousePosition, MouseButtonIdEnum[] mouseButtonDown = null, MouseButtonIdEnum[] mouseButtonUp = null, WindowsInput.Native.VirtualKeyCode[] keyDown = null, WindowsInput.Native.VirtualKeyCode[] keyUp = null, string textEntry = null, System.Nullable<bool> windowToForeground = null)
+        {
+            MousePosition = mousePosition;
+            MouseButtonDown = mouseButtonDown;
+            MouseButtonUp = mouseButtonUp;
+            KeyDown = keyDown;
+            KeyUp = keyUp;
+            TextEntry = textEntry;
+            WindowToForeground = windowToForeground;
+        }
+    }
     public class MotionResult
     {
         public Int64 MotionRecommendationId;

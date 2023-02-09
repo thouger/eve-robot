@@ -2,6 +2,11 @@
 
 static public class WinApi
 {
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static public extern bool SetCursorPos(int x, int y);
+
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
 
@@ -150,10 +155,6 @@ static public class WinApi
 
     [DllImport("user32.dll", SetLastError = false)]
     static public extern IntPtr GetDesktopWindow();
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    static public extern bool SetCursorPos(int x, int y);
 
     [DllImport("user32.dll")]
     static public extern bool ClientToScreen(IntPtr hWnd, ref Point lpPoint);
