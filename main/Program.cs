@@ -1,30 +1,27 @@
-﻿using read_memory_64_bit;
-using System.Diagnostics;
-using System.Net.NetworkInformation;
-using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
 using WindowsInput;
-using static System.Net.WebRequestMethods;
 using static utils;
-using static WindowsInput.InputSimulator;
+
 
 public class Program
 {
     static Queue<ReadingFromGameClient> readingFromGameHistory = new Queue<ReadingFromGameClient>();
 
-    System.Diagnostics.Process[] GetWindowsProcessesLookingLikeEVEOnlineClient() =>
-    System.Diagnostics.Process.GetProcessesByName("exefile");
+    Process[] GetWindowsProcessesLookingLikeEVEOnlineClient() =>
+    Process.GetProcessesByName("exefile");
 
     public class GameClientProcessSummaryStruct
     {
         public int processId;
 
-        public string mainWindowId;
+        public long mainWindowId;
 
         public string mainWindowTitle;
 
         public int mainWindowZIndex;
     }
-    public System.Collections.Generic.IReadOnlyList<GameClientProcessSummaryStruct> ListGameClientProcesses()
+
+    public IReadOnlyList<GameClientProcessSummaryStruct> ListGameClientProcesses()
     {
         var allWindowHandlesInZOrder = WinApi.ListWindowHandlesInZOrder();
 
@@ -41,7 +38,7 @@ public class Program
                 return new GameClientProcessSummaryStruct
                 {
                     processId = process.Id,
-                    mainWindowId = process.MainWindowHandle.ToInt64().ToString(),
+                    mainWindowId = process.MainWindowHandle.ToInt64(),
                     mainWindowTitle = process.MainWindowTitle,
                     mainWindowZIndex = zIndexFromWindowHandle(process.MainWindowHandle) ?? 9999,
                 };
@@ -51,27 +48,7 @@ public class Program
         return processes;
     }
 
-    ulong? FindUIRootAddressFromProcessId(int processId)
-    {
-        var candidatesAddresses =
-            read_memory_64_bit.Sanderling.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
-
-        using (var memoryReader = new read_memory_64_bit.Sanderling.MemoryReaderFromLiveProcess(processId))
-        {
-            var uiTrees =
-                candidatesAddresses
-                .Select(candidateAddress => read_memory_64_bit.Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
-                .ToList();
-
-            return
-                uiTrees
-                .OrderByDescending(uiTree => uiTree?.EnumerateSelfAndDescendants().Count() ?? -1)
-                .FirstOrDefault()
-                ?.pythonObjectAddress;
-        }
-    }
-
-    public static (int, string, string) ListGameClientProcessesRequest()
+    public static (int, long, string) ListGameClientProcessesRequest()
     {
         var program = new Program();
 
@@ -80,12 +57,12 @@ public class Program
         foreach (var process in processes)
         {
             int processId = process.processId;
-            var windowId = process.mainWindowId.ToString();
+            long windowId = process.mainWindowId;
             var windowsTitle = process.mainWindowTitle.ToString();
             Console.WriteLine($"ProcessId: {processId}, MainWindowId: {windowId}, MainWindowTitle: {windowsTitle}, MainWindowZIndex: {process.mainWindowZIndex}");
             return (processId, windowId, windowsTitle);
         }
-        return (0, "", "");
+        return (0, 0, "");
     }
 
     public static ulong SearchUIRootAddress(int processId)
@@ -93,31 +70,31 @@ public class Program
         var candidatesAddresses =
    read_memory_64_bit.Sanderling.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
         var memoryReader = new read_memory_64_bit.Sanderling.MemoryReaderFromLiveProcess(processId);
-            var uiTrees =
-                candidatesAddresses
-                .Select(candidateAddress => read_memory_64_bit.Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
-                .ToList();
+        var uiTrees =
+            candidatesAddresses
+            .Select(candidateAddress => read_memory_64_bit.Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
+            .ToList();
 
-            var UIRootAddress =
-                uiTrees
-                .OrderByDescending(uiTree => uiTree?.EnumerateSelfAndDescendants().Count() ?? -1)
-                .FirstOrDefault()
-                ?.pythonObjectAddress;
-            Console.WriteLine($"Address: UIRootAddress");
+        var UIRootAddress =
+            uiTrees
+            .OrderByDescending(uiTree => uiTree?.EnumerateSelfAndDescendants().Count() ?? -1)
+            .FirstOrDefault()
+            ?.pythonObjectAddress;
+        Console.WriteLine($"Address: UIRootAddress");
         return UIRootAddress.Value;
     }
 
-    public static void ReadFromWindow(long windowId,ulong uiRootAddress, utils.GetImageDataFromReadingStructure getImageData,int processId)
+    public static void ReadFromWindow(long windowId, ulong uiRootAddress, utils.GetImageDataFromReadingStructure getImageData, int processId)
     {
         int readingFromGameCount = 0;
-        var readingFromGameIndex = System.Threading.Interlocked.Increment(ref readingFromGameCount);
-        var generalStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var readingFromGameIndex = Interlocked.Increment(ref readingFromGameCount);
+        var generalStopwatch = Stopwatch.StartNew();
 
         var readingId = readingFromGameIndex.ToString("D6") + "-" + generalStopwatch.ElapsedMilliseconds;
 
         var windowHandle = new IntPtr(windowId);
 
-        WinApi.GetWindowThreadProcessId(windowHandle, out var processIdUnsigned);
+        //WinApi.GetWindowThreadProcessId(windowHandle, out var processIdUnsigned);
 
         var windowRect = new WinApi.Rect();
         WinApi.GetWindowRect(windowHandle, ref windowRect);
@@ -181,7 +158,7 @@ public class Program
         imageData = imageData;
     }
 
-    public void ExecuteEffectOnWindow(bool bringWindowToForeground,long windowId, EffectSequenceElement[] task)
+    public void ExecuteEffectOnWindow(bool bringWindowToForeground, long windowId, EffectSequenceElement[] task)
     {
         var windowHandle = new IntPtr(windowId);
 
@@ -196,18 +173,18 @@ public class Program
         }
 
 
-            foreach (var sequenceElement in task)
-            {
-                if (sequenceElement?.effect != null)
-                    _ExecuteEffectOnWindow(sequenceElement.effect, windowHandle, bringWindowToForeground);
+        foreach (var sequenceElement in task)
+        {
+            if (sequenceElement?.effect != null)
+                _ExecuteEffectOnWindow(sequenceElement.effect, windowHandle, bringWindowToForeground);
 
-                if (sequenceElement?.delayMilliseconds != null)
-                    System.Threading.Thread.Sleep(sequenceElement.delayMilliseconds.Value);
-            }
-        
+            if (sequenceElement?.delayMilliseconds != null)
+                System.Threading.Thread.Sleep(sequenceElement.delayMilliseconds.Value);
+        }
+
     }
-    
-    public void _ExecuteEffectOnWindow(EffectOnWindowStructure effectOnWindow,IntPtr windowHandle,bool bringWindowToForeground)
+
+    public void _ExecuteEffectOnWindow(EffectOnWindowStructure effectOnWindow, IntPtr windowHandle, bool bringWindowToForeground)
     {
         if (bringWindowToForeground)
             WinApi.SetForegroundWindow(windowHandle);
@@ -257,9 +234,9 @@ public class Program
         }
     }
 
-    static System.Action MouseActionForKeyUpOrDown(WindowsInput.Native.VirtualKeyCode keyCode, bool buttonUp)
+    static Action MouseActionForKeyUpOrDown(WindowsInput.Native.VirtualKeyCode keyCode, bool buttonUp)
     {
-        IMouseSimulator mouseSimulator() => new WindowsInput.InputSimulator().Mouse;
+        IMouseSimulator mouseSimulator() => new InputSimulator().Mouse;
 
         var method = keyCode switch
         {
@@ -278,14 +255,5 @@ public class Program
             return () => method();
 
         return null;
-    }
-
-
-    public static void Main(string[] args)
-    {
-        var program = new Program();
-        (int processId, string windowId, string windowsTitle) = ListGameClientProcessesRequest();
-        ulong uiRootAddress = SearchUIRootAddress(processId);
-        Console.WriteLine(uiRootAddress);
     }
 }

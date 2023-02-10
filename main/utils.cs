@@ -1,12 +1,8 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using WindowsInput;
-using static WinApi;
 
 public class SetForegroundWindowInWindows
 {
-
-
     static public int AltKeyPlusSetForegroundWindowWaitTimeMilliseconds = 60;
 
     /// <summary>
