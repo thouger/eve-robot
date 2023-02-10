@@ -54,13 +54,13 @@ public class Program
     ulong? FindUIRootAddressFromProcessId(int processId)
     {
         var candidatesAddresses =
-            Sanderling.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
+            read_memory_64_bit.Sanderling.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
 
-        using (var memoryReader = new Sanderling.MemoryReaderFromLiveProcess(processId))
+        using (var memoryReader = new read_memory_64_bit.Sanderling.MemoryReaderFromLiveProcess(processId))
         {
             var uiTrees =
                 candidatesAddresses
-                .Select(candidateAddress => Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
+                .Select(candidateAddress => read_memory_64_bit.Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
                 .ToList();
 
             return
@@ -91,11 +91,11 @@ public class Program
     public static ulong SearchUIRootAddress(int processId)
     {
         var candidatesAddresses =
-   Sanderling.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
-        var memoryReader = new Sanderling.MemoryReaderFromLiveProcess(processId);
+   read_memory_64_bit.Sanderling.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
+        var memoryReader = new read_memory_64_bit.Sanderling.MemoryReaderFromLiveProcess(processId);
             var uiTrees =
                 candidatesAddresses
-                .Select(candidateAddress => Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
+                .Select(candidateAddress => read_memory_64_bit.Sanderling.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
                 .ToList();
 
             var UIRootAddress =
@@ -131,14 +131,14 @@ public class Program
 
         string memoryReadingSerialRepresentationJson = null;
 
-        using (var memoryReader = new Sanderling.MemoryReaderFromLiveProcess(processId))
+        using (var memoryReader = new read_memory_64_bit.Sanderling.MemoryReaderFromLiveProcess(processId))
         {
-            var uiTree = Sanderling.EveOnline64.ReadUITreeFromAddress(uiRootAddress, memoryReader, 99);
+            var uiTree = read_memory_64_bit.Sanderling.EveOnline64.ReadUITreeFromAddress(uiRootAddress, memoryReader, 99);
 
             if (uiTree != null)
             {
                 memoryReadingSerialRepresentationJson =
-                Sanderling.EveOnline64.SerializeMemoryReadingNodeToJson(
+                read_memory_64_bit.Sanderling.EveOnline64.SerializeMemoryReadingNodeToJson(
                     uiTree.WithOtherDictEntriesRemoved());
             }
         }
@@ -220,20 +220,20 @@ public class Program
                 effectOnWindow.MouseMoveTo.location.x,
                 effectOnWindow.MouseMoveTo.location.y);
 
-            var mouseButtons = new BotEngine.Motor.MouseButtonIdEnum[] { };
+            var mouseButtons = new BotEngine.MouseButtonIdEnum[] { };
 
             var windowMotor = new Sanderling.Motor.WindowMotor(windowHandle);
 
-            var motionSequence = new BotEngine.Motor.Motion[]{
-            new BotEngine.Motor.Motion(
-                mousePosition: mousePosition,
-                mouseButtonDown: mouseButtons,
-                windowToForeground: bringWindowToForeground),
-            new BotEngine.Motor.Motion(
-                mousePosition: mousePosition,
-                mouseButtonUp: mouseButtons,
-                windowToForeground: bringWindowToForeground),
-        };
+            var motionSequence = new BotEngine.Motion[]{
+                new BotEngine.Motion(
+                    mousePosition: mousePosition,
+                    mouseButtonDown: mouseButtons,
+                    windowToForeground: bringWindowToForeground),
+                new BotEngine.Motion(
+                    mousePosition: mousePosition,
+                    mouseButtonUp: mouseButtons,
+                    windowToForeground: bringWindowToForeground),
+            };
 
             windowMotor.ActSequenceMotion(motionSequence);
         }
@@ -244,7 +244,7 @@ public class Program
 
             (MouseActionForKeyUpOrDown(keyCode: virtualKeyCode, buttonUp: false)
             ??
-            (() => new WindowsInput.InputSimulator().Keyboard.KeyDown(virtualKeyCode)))();
+            (() => new InputSimulator().Keyboard.KeyDown(virtualKeyCode)))();
         }
 
         if (effectOnWindow?.KeyUp != null)
@@ -253,23 +253,23 @@ public class Program
 
             (MouseActionForKeyUpOrDown(keyCode: virtualKeyCode, buttonUp: true)
             ??
-            (() => new WindowsInput.InputSimulator().Keyboard.KeyUp(virtualKeyCode)))();
+            (() => new InputSimulator().Keyboard.KeyUp(virtualKeyCode)))();
         }
     }
 
     static System.Action MouseActionForKeyUpOrDown(WindowsInput.Native.VirtualKeyCode keyCode, bool buttonUp)
     {
-        WindowsInput.IMouseSimulator mouseSimulator() => new WindowsInput.InputSimulator().Mouse;
+        IMouseSimulator mouseSimulator() => new WindowsInput.InputSimulator().Mouse;
 
         var method = keyCode switch
         {
             WindowsInput.Native.VirtualKeyCode.LBUTTON =>
                 buttonUp ?
-                (System.Func<WindowsInput.IMouseSimulator>)mouseSimulator().LeftButtonUp
+                mouseSimulator().LeftButtonUp
                 : mouseSimulator().LeftButtonDown,
             WindowsInput.Native.VirtualKeyCode.RBUTTON =>
                 buttonUp ?
-                (System.Func<WindowsInput.IMouseSimulator>)mouseSimulator().RightButtonUp
+                (Func<IMouseSimulator>)mouseSimulator().RightButtonUp
                 : mouseSimulator().RightButtonDown,
             _ => null
         };
@@ -283,15 +283,9 @@ public class Program
 
     public static void Main(string[] args)
     {
-        
-        
-
         var program = new Program();
         (int processId, string windowId, string windowsTitle) = ListGameClientProcessesRequest();
         ulong uiRootAddress = SearchUIRootAddress(processId);
-
-
-       
-       
+        Console.WriteLine(uiRootAddress);
     }
 }

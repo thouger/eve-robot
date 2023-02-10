@@ -28,3 +28,9 @@ D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\eveonline-robot.dll
 D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\eveonline-robot.pdb
 D:\code\eve\eveonline-robot\main\obj\Debug\net7.0\eveonline-robot.genruntimeconfig.cache
 D:\code\eve\eveonline-robot\main\obj\Debug\net7.0\ref\eveonline-robot.dll
+D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\WindowsInput.dll
+D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\Microsoft.Win32.SystemEvents.dll
+D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\System.Drawing.Common.dll
+D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\runtimes\win\lib\net7.0\Microsoft.Win32.SystemEvents.dll
+D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\runtimes\win\lib\net7.0\System.Drawing.Common.dll
+D:\code\eve\eveonline-robot\main\obj\Debug\net7.0\eveonline-robot.csproj.CopyComplete

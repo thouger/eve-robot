@@ -5,7 +5,7 @@ public static class BotEngine
 {
     public interface IMotor
     {
-        public abstract MotionResult ActSequenceMotion(IEnumerable<Motion> seqMotion);
+        public abstract void ActSequenceMotion(IEnumerable<Motion> seqMotion);
     }
     public enum MouseButtonIdEnum
     {
@@ -15,15 +15,15 @@ public static class BotEngine
         Right = 0x3,
     }
     
-    public class Motion : System.Object
+    public class Motion : object
     {
-        public readonly System.Nullable<Vektor2DInt> MousePosition;
+        public readonly Vektor2DInt? MousePosition;
         public readonly MouseButtonIdEnum[] MouseButtonDown;
         public readonly MouseButtonIdEnum[] MouseButtonUp;
         public readonly WindowsInput.Native.VirtualKeyCode[] KeyDown;
         public readonly WindowsInput.Native.VirtualKeyCode[] KeyUp;
         public readonly string TextEntry;
-        public readonly System.Nullable<bool> WindowToForeground;
+        public readonly bool? WindowToForeground;
 
         public Motion(Vektor2DInt? mousePosition, MouseButtonIdEnum[] mouseButtonDown = null, MouseButtonIdEnum[] mouseButtonUp = null, WindowsInput.Native.VirtualKeyCode[] keyDown = null, WindowsInput.Native.VirtualKeyCode[] keyUp = null, string textEntry = null, System.Nullable<bool> windowToForeground = null)
         {
@@ -342,6 +342,11 @@ public static class BotEngine
         override public string ToString()
         {
             return "A = " + KomponenteToString(A) + ", B = " + KomponenteToString(B);
+        }
+
+        public WinApi.Point AsWindowsPoint()
+        {
+            return new WinApi.Point((int)this.A, (int)this.B);
         }
     }
     public struct OrtogoonInt

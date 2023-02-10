@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using static BotEngine;
 
 static public class WinApi
 {
@@ -158,6 +159,8 @@ static public class WinApi
 
     [DllImport("user32.dll")]
     static public extern bool ClientToScreen(IntPtr hWnd, ref Point lpPoint);
+    [DllImport("user32.dll")]
+    static public extern bool ClientToScreen2(IntPtr hWnd, ref Vektor2DInt lpPoint);
 
     [DllImport("user32.dll", SetLastError = true)]
     static public extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
