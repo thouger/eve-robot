@@ -84,7 +84,7 @@ public class Program
         return UIRootAddress.Value;
     }
 
-    public static void ReadFromWindow(long windowId, ulong uiRootAddress, utils.GetImageDataFromReadingStructure getImageData, int processId)
+    public static string ReadFromWindow(long windowId, ulong uiRootAddress, utils.GetImageDataFromReadingStructure getImageData, int processId)
     {
         int readingFromGameCount = 0;
         var readingFromGameIndex = Interlocked.Increment(ref readingFromGameCount);
@@ -151,11 +151,12 @@ public class Program
             readingFromGameHistory.Dequeue();
         }
 
-        processId = processId;
-        windowClientRectOffset = windowClientRectOffset;
-        memoryReadingSerialRepresentationJson = memoryReadingSerialRepresentationJson;
-        readingId = readingId;
-        imageData = imageData;
+        //processId = processId;
+        //windowClientRectOffset = windowClientRectOffset;
+        //memoryReadingSerialRepresentationJson = memoryReadingSerialRepresentationJson;
+        //readingId = readingId;
+        //imageData = imageData;
+        return memoryReadingSerialRepresentationJson;
     }
 
     public void ExecuteEffectOnWindow(bool bringWindowToForeground, long windowId, EffectSequenceElement[] task)
