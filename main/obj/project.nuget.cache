@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "IksJKacKdqtFBFz9AaEQgIEzeRgSJpJjgKfTqhzmuXUWO9A/0NFnU7lQ8PNETLUgIqysTqii9wc38OdT3269ew==",
+  "dgSpecHash": "INPB/umUxbMOCxCG7bFj/xoM/j/zdgyfLtvtQsK5PqvKedtkwI25tHntTPNSA6kayMnKs9R7kXqR/QQJHU5wXQ==",
   "success": true,
   "projectFilePath": "D:\\code\\eve\\eveonline-robot\\main\\eveonline-robot.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "C:\\Users\\thouger\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "C:\\Users\\thouger\\.nuget\\packages\\microsoft.netcore.targets\\1.1.0\\microsoft.netcore.targets.1.1.0.nupkg.sha512",
     "C:\\Users\\thouger\\.nuget\\packages\\microsoft.win32.systemevents\\7.0.0\\microsoft.win32.systemevents.7.0.0.nupkg.sha512",
+    "C:\\Users\\thouger\\.nuget\\packages\\newtonsoft.json\\13.0.2\\newtonsoft.json.13.0.2.nupkg.sha512",
     "C:\\Users\\thouger\\.nuget\\packages\\system.drawing.common\\7.0.0\\system.drawing.common.7.0.0.nupkg.sha512",
     "C:\\Users\\thouger\\.nuget\\packages\\system.drawing.primitives\\4.3.0\\system.drawing.primitives.4.3.0.nupkg.sha512",
     "C:\\Users\\thouger\\.nuget\\packages\\system.runtime\\4.3.0\\system.runtime.4.3.0.nupkg.sha512",

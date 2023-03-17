@@ -34,3 +34,4 @@ D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\System.Drawing.Common.dll
 D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\runtimes\win\lib\net7.0\Microsoft.Win32.SystemEvents.dll
 D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\runtimes\win\lib\net7.0\System.Drawing.Common.dll
 D:\code\eve\eveonline-robot\main\obj\Debug\net7.0\eveonline-robot.csproj.CopyComplete
+D:\code\eve\eveonline-robot\main\bin\Debug\net7.0\Newtonsoft.Json.dll
