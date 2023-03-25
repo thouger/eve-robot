@@ -1,11 +1,47 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.Runtime.InteropServices;
+using static utils;
+using static WinApi;
 
 namespace main;
 public class main
 {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT
+    {
+        public int x;
+        public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int left;
+        public int top;
+        public int right;
+        public int bottom;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static public extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")]
+    static extern bool GetCursorPos(out POINT lpPoint);
+    [DllImport("user32.dll")]
+    static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+    [DllImport("user32.dll")]
+    static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+    [DllImport("user32.dll")]
+    static extern int GetDpiForWindow(IntPtr hWnd);
+
     public static void Main(string[] args)
     {
-        //(int processId, long windowId, string windowsTitle) = Program.ListGameClientProcessesRequest();
+        var scaleX = PrimaryScreen.PrimaryScreen.ScaleX;
+
+        (int processId, long windowId, string windowsTitle) = Program.ListGameClientProcessesRequest();
         //ulong uiRootAddress = Program.SearchUIRootAddress(processId);
         //Console.WriteLine(uiRootAddress);
         //var getImageData = new GetImageDataFromReadingStructure
@@ -13,66 +49,41 @@ public class main
         //    screenshot1x1Rects = new Rect2d[5]
         //};
         //var memoryReadingSerialRepresentationJson = Program.ReadFromWindow(windowId, uiRootAddress, getImageData, processId);
-        //File.WriteAllText("1.txt", memoryReadingSerialRepresentationJson);
+        //File.WriteAllText("111111111111111.json", memoryReadingSerialRepresentationJson);
+        //Console.WriteLine("done");
 
         //var memoryReadingSerialRepresentationJson = File.ReadAllText("1.txt");
-        var memoryReadingSerialRepresentationJson = File.ReadAllText("memory-reading.json");
-        JObject json = JObject.Parse(memoryReadingSerialRepresentationJson);
-        PrintJson(json);
-        Console.WriteLine();
-    }
+        //var memoryReadingSerialRepresentationJson = File.ReadAllText("memory-reading.json");
+        //JObject json = JObject.Parse(memoryReadingSerialRepresentationJson);
+        //PrintJson(json);
+        //Console.WriteLine();
 
-    //查找包含Kedama
-    public static void PrintJson(JObject token, string indent = "", int depth = 0, int x = 0, int y = 0, int _displayX = 0, int _displayY = 0)
-    {
-
-
-        foreach (var item in token)
-        {
-            var key = item.Key;
-            var value = item.Value;
-
-            try
-            {
-                x += (int)value["_displayX"];
-               
-                y += (int)value["_displayY"];
-                //Console.WriteLine($"{x},{y}");
-            }
-            catch (Exception) { }
-
-            if (value.Type is JTokenType.Object)
-            {
-                foreach (var i in (JObject)value)
-                {
+        //var windowHandle = new IntPtr(windowId);
+        //// 获取窗口客户端坐标系中的一个点
+        //POINT clientPoint = new POINT();
+        //clientPoint.X = 283;
+        //clientPoint.Y = 270;
+        //Console.WriteLine(scaleX);
+        //ClientToScreen(windowHandle, ref clientPoint);
 
 
-                    var _key = i.Key;
-                    var _value = i.Value;
-                    if (_value.Type is JTokenType.String && ((string)_value).Contains("Oisio III - Moon 1 - Hyasyoda Corporation Refinery<br>96 km"))
-                    {
+        var windowHandle = new IntPtr(windowId);
 
-                        //x -= _displayX;
-                        //y -= _displayY;
-                        Console.WriteLine(_value);
-                        Console.WriteLine($"{x},{y}");
-                    }
-                }
-            }
+        // 将客户端坐标转换为屏幕坐标
+        POINT clientPoint = new POINT(); // 在客户端坐标系下的坐标
+        clientPoint.x = 1507;
+        clientPoint.y = 198;
+        ClientToScreen(windowHandle, ref clientPoint);
+        Console.WriteLine("{0}:{1}", clientPoint.x , clientPoint.y);
+        SetCursorPos(clientPoint.x,clientPoint.y);
 
-            if (key == "children")
-            {
-                foreach (var i in value)
-                {
-                    try
-                    {
-                        _displayX = (int)value["_displayX"];
-                        _displayY = (int)value["_displayY"];
-                    }
-                    catch (Exception) { }
-                    PrintJson(token: i as JObject, x: x, y: y, _displayX: _displayX, _displayY: _displayY);
-                }
-            }
-        }
+        //// 获取窗口客户端坐标系中的一个点
+        //POINT clientPoint = new POINT();
+        //clientPoint.X = 1507;
+        //clientPoint.Y = 198;
+        ////ClientToScreen(windowHandle, ref clientPoint);
+        //ScreenToClient(windowHandle, ref clientPoint);
+        //Console.WriteLine("屏幕坐标系中的点：({0}, {1})", clientPoint.X, clientPoint.Y);
+        //SetCursorPos(clientPoint.X, clientPoint.Y);
     }
 }

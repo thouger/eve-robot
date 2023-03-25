@@ -967,6 +967,8 @@ public class Sanderling
         {
             processHandle = WinApi.OpenProcess(
                 (int)(WinApi.ProcessAccessFlags.QueryInformation | WinApi.ProcessAccessFlags.VirtualMemoryRead), false, processId);
+            int errorCode = Marshal.GetLastWin32Error();
+            Console.WriteLine("OpenProcess failed with error code: {0}", errorCode);
         }
 
         public void Dispose()
