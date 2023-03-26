@@ -1,7 +1,0 @@
-{
-    "checks": {
-        "SingleFieldRecord": false,
-        "UseConsOverConcat": false,
-        "MapNothingToNothing": false
-    }
-}
