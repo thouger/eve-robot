@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using static utils;
 using WindowsInput;
+using read_memory_64_bit;
 
 public class Program
 {
@@ -19,13 +20,15 @@ public class Program
         public int mainWindowZIndex;
     }
 
-    public IReadOnlyList<GameClientProcessSummaryStruct> ListGameClientProcesses()
+    public static IReadOnlyList<GameClientProcessSummaryStruct> ListGameClientProcesses()
     {
         var allWindowHandlesInZOrder = WinApi.ListWindowHandles();
 
         Dictionary<IntPtr, int> zIndexes = allWindowHandlesInZOrder
             .Select((windowHandle, index) => (windowHandle, index))
             .ToDictionary(x => x.windowHandle, x => x.index);
+
+        //WinApi.PrintAllWindowTitles(allWindowHandlesInZOrder);
 
         var processes = GetWindowsProcessesLookingLikeEVEOnlineClient()
             .Where(process => process.MainWindowHandle != IntPtr.Zero)
@@ -40,15 +43,21 @@ public class Program
                 };
             })
             .ToList();
-
+        if (processes.Count == 0)
+        {
+            Console.WriteLine("No EVE Online client processes found.");
+        }
+        else
+        {
+            Console.WriteLine($"Found {processes.Count} EVE Online client processes:");
+        }
         return processes;
     }
 
     public static (int, long, string) ListGameClientProcessesRequest()
     {
-        var program = new Program();
 
-        var processes = program.ListGameClientProcesses();
+        var processes = ListGameClientProcesses();
 
         foreach (var process in processes)
         {
@@ -63,11 +72,14 @@ public class Program
 
     public static ulong SearchUIRootAddress(int processId)
     {
-        var candidatesAddresses = read_memory_64_bit.EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
-        var memoryReader = new read_memory_64_bit.MemoryReaderFromLiveProcess(processId);
+        var memoryReader = new MemoryReaderFromLiveProcess(processId);
+
+        var candidatesAddresses =
+                EveOnline64.EnumeratePossibleAddressesForUIRootObjectsFromProcessId(processId);
+
         var uiTrees =
             candidatesAddresses
-            .Select(candidateAddress => read_memory_64_bit.EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
+            .Select(candidateAddress => EveOnline64.ReadUITreeFromAddress(candidateAddress, memoryReader, 99))
             .ToList();
 
         var UIRootAddress =
@@ -79,38 +91,20 @@ public class Program
         return UIRootAddress.Value;
     }
 
-    public static string ReadFromWindow(long windowId, ulong uiRootAddress, utils.GetImageDataFromReadingStructure getImageData, int processId)
+    public static string ReadFromWindow(long windowId, ulong uiRootAddress, int processId)
     {
-        int readingFromGameCount = 0;
-        var readingFromGameIndex = Interlocked.Increment(ref readingFromGameCount);
-        var generalStopwatch = Stopwatch.StartNew();
-
-        var readingId = readingFromGameIndex.ToString("D6") + "-" + generalStopwatch.ElapsedMilliseconds;
-
         var windowHandle = new IntPtr(windowId);
-
-        //WinApi.GetWindowThreadProcessId(windowHandle, out var processIdUnsigned);
-
-        var windowRect = new WinApi.Rect();
-        WinApi.GetWindowRect(windowHandle, ref windowRect);
-
-        var clientRectOffsetFromScreen = new WinApi.Point(0, 0);
-        WinApi.ClientToScreen(windowHandle, ref clientRectOffsetFromScreen);
-
-        var windowClientRectOffset =
-            new Location2d
-            { x = clientRectOffsetFromScreen.x - windowRect.left, y = clientRectOffsetFromScreen.y - windowRect.top };
 
         string memoryReadingSerialRepresentationJson = null;
 
-        using (var memoryReader = new read_memory_64_bit.MemoryReaderFromLiveProcess(processId))
+        using (var memoryReader = new MemoryReaderFromLiveProcess(processId))
         {
-            var uiTree = read_memory_64_bit.EveOnline64.ReadUITreeFromAddress(uiRootAddress, memoryReader, 99);
+            var uiTree = EveOnline64.ReadUITreeFromAddress(uiRootAddress, memoryReader, 99);
 
             if (uiTree != null)
             {
                 memoryReadingSerialRepresentationJson =
-                read_memory_64_bit.EveOnline64.SerializeMemoryReadingNodeToJson(
+                EveOnline64.SerializeMemoryReadingNodeToJson(
                     uiTree.WithOtherDictEntriesRemoved());
             }
         }
@@ -128,29 +122,24 @@ public class Program
             }
         }
 
-        var pixels_1x1_R8G8B8 = utils.GetScreenshotOfWindowAsPixelsValues_R8G8B8(windowHandle);
+        //var pixels_1x1_R8G8B8 = utils.GetScreenshotOfWindowAsPixelsValues_R8G8B8(windowHandle);
 
-        var historyEntry = new ReadingFromGameClient
-        {
-            windowHandle = windowHandle,
-            readingId = readingId,
-            pixels_1x1_R8G8B8 = pixels_1x1_R8G8B8,
-        };
+        //var historyEntry = new ReadingFromGameClient
+        //{
+        //    windowHandle = windowHandle,
+        //    readingId = readingId,
+        //    pixels_1x1_R8G8B8 = pixels_1x1_R8G8B8,
+        //};
 
-        var imageData = utils.CompileImageDataFromReadingResult(getImageData, historyEntry);
+        //var imageData = utils.CompileImageDataFromReadingResult(getImageData, historyEntry);
 
-        readingFromGameHistory.Enqueue(historyEntry);
+        //readingFromGameHistory.Enqueue(historyEntry);
 
-        while (4 < readingFromGameHistory.Count)
-        {
-            readingFromGameHistory.Dequeue();
-        }
+        //while (4 < readingFromGameHistory.Count)
+        //{
+        //    readingFromGameHistory.Dequeue();
+        //}
 
-        //processId = processId;
-        //windowClientRectOffset = windowClientRectOffset;
-        //memoryReadingSerialRepresentationJson = memoryReadingSerialRepresentationJson;
-        //readingId = readingId;
-        //imageData = imageData;
         return memoryReadingSerialRepresentationJson;
     }
 

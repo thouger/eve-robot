@@ -78,7 +78,6 @@ public static class BotEngine
         {
             yield break;
         }
-
         if (null == Subtrahend)
         {
             yield return Minuend;
@@ -293,7 +292,7 @@ public static class BotEngine
             return NumberFormat;
         }
 
-        static public string KomponenteToString(Int64? Komponente)
+        static public string? KomponenteToString(Int64? Komponente)
         {
             if (!Komponente.HasValue)
             {
@@ -583,10 +582,7 @@ public static class BotEngine
                 Punkt.B <= Max1;
         }
 
-        static public string KomponenteToString(Int64? Komponente)
-        {
-            return Vektor2DInt.KomponenteToString(Komponente);
-        }
+        static public string KomponenteToString(Int64? Komponente) => Vektor2DInt.KomponenteToString(Komponente);
 
         override public string ToString()
         {

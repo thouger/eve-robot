@@ -77,11 +77,11 @@ public class WindowMotor : IMotor
                     Thread.Sleep(MouseEventTimeDistanceMilli);
                 }
 
-                var mouseSetAction = new[]
+                KeyValuePair<MouseButtonIdEnum, bool>[] mouseSetAction = new[]
                 {
-                        Motion?.MouseButtonDown?.Select(button => new KeyValuePair<MouseButtonIdEnum, bool>(button, true)),
-                        Motion?.MouseButtonUp?.Select(button => new KeyValuePair<MouseButtonIdEnum, bool>(button, false)),
-                    }.ConcatNullable2().ToArray();
+                    Motion?.MouseButtonDown?.Select(button => new KeyValuePair<MouseButtonIdEnum, bool>(button, true)),
+                    Motion?.MouseButtonUp?.Select(button => new KeyValuePair<MouseButtonIdEnum, bool>(button, false)),
+                }.ConcatNullable2().ToArray();
 
                 if (0 < mouseSetAction?.Length)
                 {

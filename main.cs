@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using read_memory_64_bit;
+using System.Runtime.InteropServices;
 using static utils;
 
 namespace main;
@@ -33,15 +34,10 @@ public class main
         var scaleX = PrimaryScreen.PrimaryScreen.ScaleX;
         (int processId, long windowId, string windowsTitle) = Program.ListGameClientProcessesRequest();
 
-        //ulong uiRootAddress = Program.SearchUIRootAddress(processId);
-        //Console.WriteLine(uiRootAddress);
-        //var getImageData = new GetImageDataFromReadingStructure
-        //{
-        //    screenshot1x1Rects = new Rect2d[5]
-        //};
-        //var memoryReadingSerialRepresentationJson = Program.ReadFromWindow(windowId, uiRootAddress, getImageData, processId);
-        //File.WriteAllText("111111111111111.json", memoryReadingSerialRepresentationJson);
-        //Console.WriteLine("done");
+        ulong uiRootAddress = Program.SearchUIRootAddress(processId);
+        var memoryReadingSerialRepresentationJson = Program.ReadFromWindow(windowId, uiRootAddress, processId);
+        File.WriteAllText("111111111111111.json", memoryReadingSerialRepresentationJson);
+        Console.WriteLine("done");
 
         //var memoryReadingSerialRepresentationJson = File.ReadAllText("1.txt");
         //var memoryReadingSerialRepresentationJson = File.ReadAllText("memory-reading.json");

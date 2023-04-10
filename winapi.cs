@@ -4,21 +4,6 @@ using static BotEngine;
 
 public static partial class WinApi
 {
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-public     static partial bool SetCursorPos(int x, int y);
-
-    [LibraryImport("user32.dll")]
-    public static partial IntPtr GetForegroundWindow();
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetForegroundWindow(IntPtr hWnd);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public     static partial bool CloseHandle(IntPtr hHandle);
     
     //  https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-memory_basic_information
     public enum MemoryInformationType : int
@@ -129,71 +114,29 @@ public     static partial IntPtr OpenProcess(int dwDesiredAccess, [MarshalAs(Unm
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public     static partial bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
-
-    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-    /*
-    https://stackoverflow.com/questions/19867402/how-can-i-use-enumwindows-to-find-windows-with-a-specific-caption-title/20276701#20276701
-    https://stackoverflow.com/questions/295996/is-the-order-in-which-handles-are-returned-by-enumwindows-meaningful/296014#296014
-    */
-    public static IReadOnlyList<IntPtr> ListWindowHandles()
-    {
-        List<IntPtr> windowHandles = new();
-
-        EnumWindows((hwnd, lParam) => {
-            windowHandles.Add(hwnd);
-            return true;
-        }, IntPtr.Zero);
-
-        return windowHandles.AsReadOnly();
-    }
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetWindowText(IntPtr hWnd, StringBuilder strText, int maxCount);
+    public static partial bool SetCursorPos(int x, int y);
 
     [LibraryImport("user32.dll")]
-    private static partial int GetWindowTextLength(IntPtr hWnd);
-    public static string GetWindowText(IntPtr hWnd)
-    {
-        int size = GetWindowTextLength(hWnd);
-        if (size > 0)
-        {
-            var builder = new StringBuilder(size + 1);
-            GetWindowText(hWnd, builder, builder.Capacity);
-            return builder.ToString();
-        }
+    public static partial IntPtr GetForegroundWindow();
 
-        return String.Empty;
-    }
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetForegroundWindow(IntPtr hWnd);
 
-    public static IEnumerable<IntPtr> FindWindowsWithText(string titleText)
-    {
-        return FindWindows(delegate (IntPtr wnd, IntPtr param)
-        {
-            return GetWindowText(wnd).Contains(titleText);
-        });
-    }
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool CloseHandle(IntPtr hHandle);
 
-    public static IEnumerable<IntPtr> FindWindows(EnumWindowsProc filter)
-    {
-        IntPtr found = IntPtr.Zero;
-        List<IntPtr> windows = new();
+    delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-        EnumWindows(delegate (IntPtr wnd, IntPtr param)
-        {
-            if (filter(wnd, param))
-            {
-                // only add the windows that pass the filter
-                windows.Add(wnd);
-            }
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
 
-            // but return true here so that we iterate all windows
-            return true;
-        }, IntPtr.Zero);
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 
-        return windows;
-    }
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern int GetWindowTextLength(IntPtr hWnd);
 
     [LibraryImport("user32.dll")]
 public     static partial IntPtr ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -213,4 +156,44 @@ public static partial IntPtr GetDesktopWindow();
 
     [LibraryImport("user32.dll", SetLastError = true)]
 public     static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    /*
+    https://stackoverflow.com/questions/19867402/how-can-i-use-enumwindows-to-find-windows-with-a-specific-caption-title/20276701#20276701
+    https://stackoverflow.com/questions/295996/is-the-order-in-which-handles-are-returned-by-enumwindows-meaningful/296014#296014
+    */
+    public static IReadOnlyList<IntPtr> ListWindowHandles()
+    {
+        List<IntPtr> windowHandles = new();
+
+        EnumWindows((hwnd, lParam) => {
+            windowHandles.Add(hwnd);
+            return true;
+        }, IntPtr.Zero);
+
+        return windowHandles.AsReadOnly();
+    }
+
+    //输出所有窗口标题
+    public static void PrintAllWindowTitles(IReadOnlyList<nint> allWindowHandlesInZOrder)
+    {
+        List<string> appTitles = new List<string>();
+
+        EnumWindows((hWnd, lParam) => {
+            int length = GetWindowTextLength(hWnd);
+            if (length > 0)
+            {
+                var sb = new System.Text.StringBuilder(length + 1);
+                GetWindowText(hWnd, sb, sb.Capacity);
+                appTitles.Add(sb.ToString());
+            }
+            return true;
+        }, IntPtr.Zero);
+
+        foreach (var title in appTitles)
+        {
+            Console.WriteLine(title);
+        }
+
+        Console.ReadKey();
+    }
 }

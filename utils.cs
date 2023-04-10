@@ -140,7 +140,7 @@ public class utils
                 request.screenshot1x1Rects
                 .Select(rect =>
                 {
-                    var cropPixels = CopyRectangularCrop(historyEntry.pixels_1x1_R8G8B8, rect);
+                    var cropPixels = CopyRectangularCrop(historyEntry.pixels_1x1_R8G8B8, rect: rect);
 
                     return new ImageCrop
                     {
@@ -176,14 +176,16 @@ public class utils
         int width = windowRect.right - windowRect.left;
         int height = windowRect.bottom - windowRect.top;
 
-        var asBitmap = new System.Drawing.Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+        System.Drawing.Bitmap asBitmap = new(width: width,
+                                             height: height,
+                                             format: System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 
         System.Drawing.Graphics.FromImage(asBitmap).CopyFromScreen(
             windowRect.left,
             windowRect.top,
             0,
             0,
-            new System.Drawing.Size(width, height),
+            new System.Drawing.Size(width: width, height: height),
             System.Drawing.CopyPixelOperation.SourceCopy);
 
         return asBitmap;
@@ -199,7 +201,7 @@ public class utils
 
     public static int[][] GetScreenshotOfWindowAsPixelsValues_R8G8B8(IntPtr windowHandle)
     {
-        var screenshotAsBitmap = GetScreenshotOfWindowAsBitmap(windowHandle);
+        var screenshotAsBitmap = GetScreenshotOfWindowAsBitmap(windowHandle: windowHandle);
 
         if (screenshotAsBitmap == null)
             return null;
