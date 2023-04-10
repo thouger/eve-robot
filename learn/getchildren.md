@@ -7,6 +7,10 @@
 7. *(_QWORD *)(v8 + *(_QWORD *)(v6 + 0x18)) = v9;这一句,看起来像#define PyList_SET_ITEM(op, i, v) (((PyListObject *)(op))->ob_item[i] = (v)),其中 *(_QWORD *)(v6 + 0x18) 表示 v6  PyListObject 结构体在内存中的地址,v8 是v6数组的元素偏移.所以 v8 + *(_QWORD *)(v6 + 0x18) 就是要设置的元素的地址。而 *(_QWORD *)(v8 + *(_QWORD *)(v6 + 0x18)) 就是这个元素的值。所以这个语句的作用就是设置 v6 列表中的某个元素为 v9
 8. 最后返回v6
 
+![image](https://user-images.githubusercontent.com/11767062/230953695-ad6ee174-c9fd-431f-b40c-d0d45cfb8273.png)
+
+
+```
 typedef struct {
     PyObject_HEAD
 
@@ -26,6 +30,7 @@ typedef struct {
        keys are stored in ma_keys and values are stored in ma_values */
     PyObject **ma_values;
 } PyDictObject;
+```
 PyObject_HEAD是一个宏定义，展开后会生成一个包含了引用计数和类型信息的结构体。根据Python版本的不同，PyObject_HEAD在实现上也有所不同，但通常都是16字节。
 Py_ssize_t ma_used是一个有符号整数类型，通常是4字节或8字节，具体取决于平台和编译器。
 uint64_t ma_version_tag是一个无符号64位整数，占8字节。
